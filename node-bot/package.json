@@ -1,0 +1,19 @@
+{
+  "name": "node-bot",
+  "version": "1.0.0",
+  "description": "Bot de agendamento via WhatsApp usando Venom",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": ["whatsapp", "bot", "agendamento", "venom"],
+  "author": "Sono",
+  "license": "MIT",
+  "dependencies": {
+    "venom-bot": "^5.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
