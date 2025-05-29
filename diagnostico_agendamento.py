@@ -1,15 +1,18 @@
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
-# Caminho do seu arquivo de credenciais
-SERVICE_ACCOUNT_FILE = 'credentials.json'
+# Carregar variáveis de ambiente do arquivo .env
+load_dotenv()
+
+# Caminho e escopos do serviço
+SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials.json")
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# Substitua pelo ID da sua planilha
-SPREADSHEET_ID = '1-1Ny1wnYVeBTo53s1bNSztdbhIXxmrvs-2mkLMLvhwQ'
-
-# Autenticando com as credenciais
+# Autenticação com as credenciais
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('sheets', 'v4', credentials=credentials)
@@ -29,7 +32,7 @@ def ler_planilha(nome_aba):
         print(f"✅ Leitura da aba '{nome_aba}' concluída com sucesso. {len(df)} linhas.")
         return df
 
-# Testar as abas existentes
+# Abas a serem lidas
 abas = ['HorariosPorMedico', 'DiasDisponiveis', 'TurnosEspeciais', 'Pacientes']
 
 for aba in abas:

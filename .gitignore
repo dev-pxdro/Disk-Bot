@@ -10,6 +10,7 @@ node_modules/
 .env
 *.log
 rfc5755.py
+*.env
 
 # Python
 __pycache__/

@@ -6,9 +6,11 @@ from pymongo import MongoClient
 import sys
 import os
 import io
+from dotenv import load_dotenv
 
-# Conexão com MongoDB
-MONGO_URI = "mongodb+srv://Admin:Toparatu20@cluster0.xqhpmhw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGO_URI")
 client_mongo = MongoClient(MONGO_URI)
 db = client_mongo["agendamento_db"]
 colecao_agendamentos = db["agendamentos"]
