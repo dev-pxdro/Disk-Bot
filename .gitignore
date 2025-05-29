@@ -10,3 +10,21 @@ node_modules/
 .env
 *.log
 rfc5755.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ambientes virtuais
+env/
+venv/
+
+# VSCode
+.vscode/
+
+# Node (caso use frontend)
+node_modules/
+dist/
+build/
