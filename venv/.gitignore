@@ -1,12 +1,2 @@
-# Ignorar as credenciais sensíveis
-credentials.json
-tokens/
-
-# Node modules
-node_modules/
-
-# Arquivos do sistema
-.DS_Store
-.env
-*.log
-rfc5755.py
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*

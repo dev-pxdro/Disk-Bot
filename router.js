@@ -1,4 +1,4 @@
-const { exec } = require('child_process'); 
+const { exec } = require('child_process');
 
 const estados = {};
 const tempoLimite = 10 * 60 * 1000; // 10 minutos
@@ -7,6 +7,10 @@ const expiracoes = {};
 function resetarAtendimento(telefone, inativo = false) {
   delete estados[telefone];
   delete estados[telefone + '_especialidade'];
+  delete estados[telefone + '_nome'];
+  delete estados[telefone + '_sus'];
+  delete estados[telefone + '_rua'];
+  delete estados[telefone + '_bairro'];
   clearTimeout(expiracoes[telefone]);
   delete expiracoes[telefone];
   if (inativo) {
@@ -36,9 +40,8 @@ async function handleMessage(body, senderId) {
   }
 
   const estado = estados[telefone] || null;
-
-  // Modificação aqui para aceitar qualquer saudação
   const saudacoes = ['oi', 'olá', 'bom dia', 'boa tarde', 'boa noite'];
+
   if (!estado && saudacoes.some(s => mensagem.includes(s))) {
     estados[telefone] = 'aguardando_escolha';
     agendarTimeout(telefone);
@@ -72,12 +75,7 @@ Escolha a especialidade desejada:
         estados[telefone] = 'coletando_dados';
         estados[telefone + '_especialidade'] = especialidades[mensagem];
         console.log(`[${telefone}] Escolheu: ${especialidades[mensagem]}`);
-        return resolve(`Ótimo! Para agilizar seu atendimento, envie os dados abaixo separados por linhas:
-
-- Nome completo
-- Cartão SUS
-- Nome da Rua
-- Bairro`);
+        return resolve('Vamos começar! Por favor, informe seu nome completo:');
       }
       if (mensagem === '5') {
         estados[telefone] = 'info_opcoes';
@@ -118,29 +116,68 @@ Escolha a especialidade desejada:
     }
 
     if (estado === 'coletando_dados') {
-      const partes = body.split('\n').map(linha => linha.trim()).filter(linha => linha.length > 0);
-      if (partes.length < 4) {
-        return resolve('❗ Por favor, envie os dados separados corretamente por linha:\n\n- Nome completo\n- Cartão SUS\n- Nome da Rua\n- Bairro');
+      if (!estados[telefone + '_nome']) {
+        estados[telefone + '_nome'] = body;
+        return resolve('Agora informe o número do cartão SUS:');
       }
+      if (!estados[telefone + '_sus']) {
+        estados[telefone + '_sus'] = body;
+        return resolve('Informe o nome da rua:');
+      }
+      if (!estados[telefone + '_rua']) {
+        estados[telefone + '_rua'] = body;
+        return resolve('Por fim, informe o bairro:');
+      }
+      if (!estados[telefone + '_bairro']) {
+        estados[telefone + '_bairro'] = body;
 
-      const [nome, cartaoSUS, rua, bairro] = partes;
-      const especialidade = estados[telefone + '_especialidade'];
-      const path = require('path');
-      const scriptPath = path.resolve(__dirname, 'salvar_agendamento.py');
-      const comando = `python "${scriptPath}" "${nome}" "${telefone}" "${cartaoSUS}" "${rua}" "${bairro}" "${especialidade}"`;
+        const nome = estados[telefone + '_nome'];
+        const sus = estados[telefone + '_sus'];
+        const rua = estados[telefone + '_rua'];
+        const bairro = estados[telefone + '_bairro'];
+        const especialidade = estados[telefone + '_especialidade'];
 
+        estados[telefone] = 'confirmando_dados';
+        return resolve(`📝 Por favor, confirme os dados informados:
 
-      console.log(`[${telefone}] Dados recebidos. Executando: ${comando}`);
+👤 *Nome:* ${nome}  
+🆔 *Cartão SUS:* ${sus}  
+🏠 *Rua:* ${rua}  
+📍 *Bairro:* ${bairro}  
+📌 *Especialidade:* ${especialidade}
 
-      exec(comando, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`[${telefone}] Erro ao executar Python:`, stderr);
-          return resolve('⚠️ Ocorreu um erro ao tentar agendar. Tente novamente mais tarde.');
-        }
+Deseja confirmar o agendamento com esses dados? (responda "sim" ou "não")`);
+      }
+    }
 
+    if (estado === 'confirmando_dados') {
+      if (mensagem === 'sim') {
+        const nome = estados[telefone + '_nome'];
+        const sus = estados[telefone + '_sus'];
+        const rua = estados[telefone + '_rua'];
+        const bairro = estados[telefone + '_bairro'];
+        const especialidade = estados[telefone + '_especialidade'];
+        const path = require('path');
+        const scriptPath = path.resolve(__dirname, 'salvar_agendamento.py');
+        const comando = `python "${scriptPath}" "${nome}" "${telefone}" "${sus}" "${rua}" "${bairro}" "${especialidade}"`;
+
+        console.log(`[${telefone}] Dados confirmados. Executando: ${comando}`);
+
+        exec(comando, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`[${telefone}] Erro ao executar Python:`, stderr);
+            return resolve('⚠️ Ocorreu um erro ao tentar agendar. Tente novamente mais tarde.');
+          }
+
+          resetarAtendimento(telefone);
+          resolve(`✅ ${stdout.trim()}\n\nSe quiser agendar outro atendimento, envie "oi".`);
+        });
+      } else if (mensagem === 'não' || mensagem === 'nao') {
         resetarAtendimento(telefone);
-        resolve(`✅ ${stdout.trim()}\n\nSe quiser agendar outro atendimento, envie "oi".`);
-      });
+        return resolve('❌ Dados descartados. Envie "oi" para iniciar novamente.');
+      } else {
+        return resolve('❓ Por favor, responda com "sim" para confirmar ou "não" para cancelar.');
+      }
     }
   });
 }
